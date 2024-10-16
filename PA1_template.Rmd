@@ -1,0 +1,141 @@
+---
+title: "PA1_template"
+author: "Said Zamora"
+date: "2024-10-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+
+# Load the dataset (replace with your actual file path)
+activity_data <- read.csv(file.choose())
+
+# Display the first few rows to understand the data structure
+head(activity_data)
+```
+
+```{r}
+
+
+# Calculate total steps per day
+daily_steps <- activity_data %>%
+  group_by(date) %>%
+  summarize(total_steps = sum(steps, na.rm = TRUE)) 
+
+# Histogram of total steps per day
+hist(daily_steps$total_steps, 
+     main = "Histogram of Total Steps Per Day", 
+     xlab = "Total Steps", 
+     col = "lightblue")
+
+```
+
+
+```{r}
+# Calculate and report mean and median steps
+mean_steps <- mean(daily_steps$total_steps)
+median_steps <- median(daily_steps$total_steps)
+
+print(paste("Mean steps per day:", mean_steps))
+print(paste("Median steps per day:", median_steps))
+
+```
+
+```{r}
+# Calculate average steps per 5-minute interval
+average_steps_interval <- activity_data %>%
+  group_by(interval) %>%
+  summarize(mean_steps = mean(steps, na.rm = TRUE))
+
+# Time series plot of average steps per interval
+plot(average_steps_interval$interval, average_steps_interval$mean_steps, 
+     type = "l", 
+     main = "Average Steps per 5-minute Interval", 
+     xlab = "5-minute Interval", 
+     ylab = "Average Steps")
+
+
+```
+
+```{r}
+
+# Find interval with maximum average steps
+max_interval <- average_steps_interval %>% 
+  filter(mean_steps == max(mean_steps))
+
+print(paste("The 5-minute interval with maximum average steps:", max_interval$interval))
+
+```
+
+```{r}
+
+# Calculate total number of missing values
+missing_values <- sum(is.na(activity_data$steps))
+print(paste("Total missing values:", missing_values))
+
+# Impute missing values with the mean for that 5-minute interval
+activity_data_imputed <- activity_data %>%
+  group_by(interval) %>%
+  mutate(steps = ifelse(is.na(steps), mean(steps, na.rm = TRUE), steps))
+
+# Histogram of total steps per day (imputed data)
+daily_steps_imputed <- activity_data_imputed %>%
+  group_by(date) %>%
+  summarize(total_steps = sum(steps))
+
+hist(daily_steps_imputed$total_steps, 
+     main = "Histogram of Total Steps Per Day (Imputed Data)", 
+     xlab = "Total Steps", 
+     col = "lightgreen")
+
+```
+
+```{r}
+
+# Calculate and report mean and median steps (imputed data)
+mean_steps_imputed <- mean(daily_steps_imputed$total_steps)
+median_steps_imputed <- median(daily_steps_imputed$total_steps)
+
+print(paste("Mean steps per day (imputed data):", mean_steps_imputed))
+print(paste("Median steps per day (imputed data):", median_steps_imputed))
+
+```
+
+```{r}
+# Compare with original values and discuss the impact of imputation
+
+# Create a new factor variable for weekday/weekend
+activity_data_imputed <- activity_data_imputed %>%
+  mutate(day_type = ifelse(weekdays(as.Date(date)) %in% c("Saturday", "Sunday"), "weekend", "weekday"),
+         day_type = factor(day_type))
+
+# Calculate average steps per interval for weekdays and weekends
+average_steps_day_type <- activity_data_imputed %>%
+  group_by(interval, day_type) %>%
+  summarize(mean_steps = mean(steps))
+
+# Panel plot of average steps per interval by day type
+library("ggplot2")
+ggplot(average_steps_day_type, aes(x = interval, y = mean_steps, color = day_type)) +
+  geom_line() +
+  facet_wrap(~ day_type, ncol = 1) +
+  labs(title = "Average Steps per 5-minute Interval by Day Type",
+       x = "5-minute Interval",
+       y = "Average Steps") +
+  theme_bw()
+
+
+
+```
